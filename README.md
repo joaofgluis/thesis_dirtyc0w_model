@@ -62,6 +62,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 ---------------------------------------------------------
 ACTION
 
@@ -96,6 +97,7 @@ def validate_binary(command):
     :return: True se for permitido, False caso contrário
     """
     return command in SAFE_BINARIES
+
 -----------------------------------------------------
 
 CONTEXT
@@ -115,7 +117,7 @@ def validate_context():
 
 --------------------------------------------
 
-EXPLOIT
+EXPLOIT teste
 
 /*
  * dirtyc0w.c
