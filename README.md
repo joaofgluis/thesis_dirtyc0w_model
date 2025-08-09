@@ -7,9 +7,7 @@
     from policy_engine import PolicyEngine
 
     class CommandInterceptor:
-    """
-    Intercepta a execução de comandos privilegiados.
-    """
+
     def __init__(self, policy_engine=None, logger=None, file_protector=None):
         self.policy_engine = policy_engine or PolicyEngine()
         self.logger = logger or AuditLogger()
@@ -48,9 +46,7 @@
     import logging
     
     class AuditLogger:
-    """
-    Regista todas as tentativas de execução de comandos privilegiados.
-    """
+
     def __init__(self, logfile='/var/log/tef_audit.log'):
         logging.basicConfig(
             filename=logfile,
@@ -59,9 +55,7 @@
         )
         self.logger = logging.getLogger('TEF')
     def log(self, user, command, args, result):
-        """
-        Regista no ficheiro de log o utilizador, comando, argumentos e resultado.
-        """
+
         self.logger.info(f'User={user} CMD={command} ARGS={args} RESULT={result}')
 
 
@@ -71,9 +65,7 @@
     import os
 
     class FileProtector:
-    """
-    Define ficheiros com restrições específicas.
-    """
+
     def __init__(self, protected_paths=None):
         # Lista de caminhos absolutos protegidos
         self.protected_paths = protected_paths or ['/opt/confidencial']
@@ -85,9 +77,7 @@
     #!/usr/bin/env python3
 
     class PolicyEngine:
-    """
-    Aplica as políticas definidas no ficheiro de configuração.
-    """
+
     def __init__(self, config_file='/etc/tef_policy.conf'):
         self.policies = self.load_policies(config_file)
     def load_policies(self, config_file):
@@ -118,9 +108,7 @@
     from command_interceptor import CommandInterceptor
     
     class TEFModel:
-    """
-    Fábrica do modelo TEF: junta todos os componentes e executa o interceptor.
-    """
+
     def __init__(self):
         self.logger = AuditLogger()
         self.file_protector = FileProtector()
